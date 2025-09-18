@@ -28,4 +28,4 @@ import fs from "fs"
     }
     
 
-export {uploadOncloudinary}
+export {uploadOncloudinary} 
