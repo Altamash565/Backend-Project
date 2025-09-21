@@ -15,15 +15,15 @@ const registerUser = asyncHandler( async (req, res) => {
      // remove password and refresh token field from response
      // return res
 
-     const {fullName, email, username, password}= req.body
-     console.log("email: ", email );
+     const {fullname, email, username, password}= req.body
+    //  console.log("email: ", email );
 
-    //  if(fullName === "") {
+    //  if(fullname === "") {
     //     throw new ApiError(400, "fullname is required")
     //  }
 
     if (
-        [fullName, email, username, password].some((field) => 
+        [fullname, email, username, password].some((field) => 
         field?.trim() === "")
     ) {
         throw new ApiError(400, "All fields are required ")
@@ -59,8 +59,8 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Avatar file is required")
     }
 
-    const user = User.create({
-        fullName,
+    const user = await User.create({
+        fullname,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
         email,
