@@ -168,7 +168,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $unset: {
-        refreshToken: undefined,
+        refreshToken: 1, //This removes the field from document
       },
     },
     {
@@ -435,7 +435,7 @@ const getWatchHistory = asyncHandler(async(req, res) => {
             $lookup: {
               from: "users",
               localField: "owner",
-              foreignField: _id,
+              foreignField: "_id",
               as: "owner",
               pipeline: [
                 {
