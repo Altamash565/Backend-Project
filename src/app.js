@@ -37,6 +37,18 @@ app.use("/api/v1/likes", likeRouter)
 app.use("/api/v1/playlist", playlistRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
 
+// Global error handling middleware to return JSON errors instead of HTML stack traces
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500
+    const message = err.message || "Internal Server Error"
+    return res.status(statusCode).json({
+        statusCode,
+        success: false,
+        message,
+        errors: err.errors || []
+    })
+})
+
 // http://localhost:8000/api/v1/users/register
 
 export { app }

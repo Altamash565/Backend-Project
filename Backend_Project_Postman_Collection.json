@@ -1,13 +1,13 @@
 {
 	"info": {
 		"_postman_id": "fb9ef9d5-78ff-4f46-93cb-b09f4fb0a4ef",
-		"name": "Backend Project - VideoTube Clone",
-		"description": "A comprehensive Postman Collection for testing all backend routes of the VideoTube clone application. Configured with environment/collection variables and authorization helpers.",
+		"name": "VideoTube Backend API",
+		"description": "Complete Postman collection for the VideoTube backend API.\n\n## Quick Start\n1. Hit **Register User** to create an account\n2. Hit **Login User** — tokens and userId are auto-saved\n3. All other requests will use the saved Bearer token automatically\n\n## Variables\n- `baseUrl` — API base (default: http://localhost:4000/api/v1)\n- `accessToken` — auto-saved on Login / Refresh\n- `refreshToken` — auto-saved on Login / Refresh\n- `userId` — auto-saved on Login\n- `videoId` / `tweetId` / `commentId` / `playlistId` / `channelId` — set manually or via test scripts",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Healthcheck",
+			"name": "🏥 Healthcheck",
 			"item": [
 				{
 					"name": "Get Healthcheck",
@@ -26,17 +26,32 @@
 								"healthcheck"
 							]
 						},
-						"description": "Checks the health status of the backend server. Returns HTTP 200 with OK status."
+						"description": "Simple health check — returns 200 OK if the server is alive. No authentication required."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Users",
+			"name": "👤 Users",
 			"item": [
 				{
 					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data._id) {",
+									"    pm.collectionVariables.set(\"userId\", jsonData.data._id);",
+									"    console.log(\"✅ userId saved:\", jsonData.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"auth": {
 							"type": "noauth"
@@ -69,12 +84,14 @@
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": ""
+									"src": "",
+									"description": "(Required) Profile picture"
 								},
 								{
 									"key": "coverImage",
 									"type": "file",
-									"src": ""
+									"src": "",
+									"description": "(Optional) Channel banner image"
 								}
 							]
 						},
@@ -88,7 +105,7 @@
 								"register"
 							]
 						},
-						"description": "Registers a new user in the system. Expects multipart/form-data for uploading the avatar and optional cover image."
+						"description": "Registers a new user. Requires multipart/form-data with avatar file (required) and optional coverImage. Auto-saves the returned userId."
 					},
 					"response": []
 				},
@@ -103,9 +120,15 @@
 									"if (jsonData && jsonData.data) {",
 									"    if (jsonData.data.accessToken) {",
 									"        pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+									"        console.log(\"✅ accessToken saved\");",
 									"    }",
 									"    if (jsonData.data.refreshToken) {",
 									"        pm.collectionVariables.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"        console.log(\"✅ refreshToken saved\");",
+									"    }",
+									"    if (jsonData.data.user && jsonData.data.user._id) {",
+									"        pm.collectionVariables.set(\"userId\", jsonData.data.user._id);",
+									"        console.log(\"✅ userId saved:\", jsonData.data.user._id);",
 									"    }",
 									"}"
 								],
@@ -138,7 +161,7 @@
 								"login"
 							]
 						},
-						"description": "Logs in an existing user using username or email along with the password. Saves the returned access token and refresh token into collection variables."
+						"description": "Logs in with username/email + password. Auto-saves accessToken, refreshToken, and userId into collection variables for subsequent requests."
 					},
 					"response": []
 				},
@@ -157,7 +180,7 @@
 								"logout"
 							]
 						},
-						"description": "Logs out the authenticated user by clearing cookies and invalidating the refresh token."
+						"description": "Logs out the authenticated user — clears cookies and invalidates the refresh token in the database."
 					},
 					"response": []
 				},
@@ -172,9 +195,11 @@
 									"if (jsonData && jsonData.data) {",
 									"    if (jsonData.data.accessToken) {",
 									"        pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+									"        console.log(\"✅ accessToken refreshed\");",
 									"    }",
 									"    if (jsonData.data.refreshToken) {",
 									"        pm.collectionVariables.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"        console.log(\"✅ refreshToken refreshed\");",
 									"    }",
 									"}"
 								],
@@ -207,7 +232,7 @@
 								"refresh-token"
 							]
 						},
-						"description": "Generates a new access token using a valid refresh token. Saves the new credentials in the collection variables."
+						"description": "Generates a new access token using a valid refresh token. Auto-saves the new tokens."
 					},
 					"response": []
 				},
@@ -218,7 +243,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"oldPassword\": \"securePassword123\",\n    \"newPassword\": \"newSecurePassword123\"\n}",
+							"raw": "{\n    \"oldPassword\": \"securePassword123\",\n    \"newPassword\": \"newSecurePassword456\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -235,7 +260,7 @@
 								"change-password"
 							]
 						},
-						"description": "Allows the authenticated user to change their account password."
+						"description": "Changes the password for the authenticated user. Requires both old and new passwords."
 					},
 					"response": []
 				},
@@ -254,7 +279,7 @@
 								"current-user"
 							]
 						},
-						"description": "Fetches details of the currently authenticated user."
+						"description": "Returns the profile details of the currently authenticated user."
 					},
 					"response": []
 				},
@@ -282,7 +307,7 @@
 								"update-account"
 							]
 						},
-						"description": "Updates text details (fullname, email) for the logged-in user."
+						"description": "Updates the fullname and email for the authenticated user."
 					},
 					"response": []
 				},
@@ -297,7 +322,8 @@
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": ""
+									"src": "",
+									"description": "New avatar image file"
 								}
 							]
 						},
@@ -311,7 +337,7 @@
 								"avatar"
 							]
 						},
-						"description": "Updates the profile avatar of the authenticated user."
+						"description": "Uploads a new avatar image. The old avatar is automatically deleted from Cloudinary."
 					},
 					"response": []
 				},
@@ -324,9 +350,10 @@
 							"mode": "formdata",
 							"formdata": [
 								{
-									"key": "coverImage",
+									"key": "cover-image",
 									"type": "file",
-									"src": ""
+									"src": "",
+									"description": "New cover image file"
 								}
 							]
 						},
@@ -340,7 +367,7 @@
 								"cover-image"
 							]
 						},
-						"description": "Updates the cover image of the authenticated user."
+						"description": "Uploads a new cover/banner image for the user's channel profile."
 					},
 					"response": []
 				},
@@ -363,11 +390,11 @@
 								{
 									"key": "username",
 									"value": "johndoe",
-									"description": "The unique username of the channel"
+									"description": "The channel's username"
 								}
 							]
 						},
-						"description": "Retrieves the subscription statistics and details for a channel by its username."
+						"description": "Fetches a channel's public profile: subscriber count, subscribed-to count, isSubscribed flag, avatar, and cover image."
 					},
 					"response": []
 				},
@@ -386,17 +413,465 @@
 								"history"
 							]
 						},
-						"description": "Fetches the watch history of the authenticated user."
+						"description": "Returns the authenticated user's watch history with full video and owner details."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Tweets",
+			"name": "🎬 Videos",
+			"item": [
+				{
+					"name": "Get All Videos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/videos?page=1&limit=10&query=&sortBy=createdAt&sortType=desc&userId=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"videos"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Results per page (default: 10)"
+								},
+								{
+									"key": "query",
+									"value": "",
+									"description": "Search keyword — matches title and description (optional)"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt",
+									"description": "Field to sort by: createdAt, views, duration (default: createdAt)"
+								},
+								{
+									"key": "sortType",
+									"value": "desc",
+									"description": "Sort order: asc or desc (default: desc)"
+								},
+								{
+									"key": "userId",
+									"value": "",
+									"description": "Filter videos by owner userId (optional)"
+								}
+							]
+						},
+						"description": "Fetches a paginated list of published videos. Supports search by keyword, filtering by userId, and dynamic sorting."
+					},
+					"response": []
+				},
+				{
+					"name": "Publish A Video",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data._id) {",
+									"    pm.collectionVariables.set(\"videoId\", jsonData.data._id);",
+									"    console.log(\"✅ videoId saved:\", jsonData.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "videoFile",
+									"type": "file",
+									"src": "",
+									"description": "(Required) The video file to upload"
+								},
+								{
+									"key": "thumbnail",
+									"type": "file",
+									"src": "",
+									"description": "(Required) Thumbnail image for the video"
+								},
+								{
+									"key": "title",
+									"value": "Learn Postman in 10 Minutes",
+									"type": "text",
+									"description": "(Required) Video title"
+								},
+								{
+									"key": "description",
+									"value": "A quick and practical walkthrough of Postman collections.",
+									"type": "text",
+									"description": "(Required) Video description"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/videos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"videos"
+							]
+						},
+						"description": "Uploads a video file + thumbnail to Cloudinary and creates a new video document. Auto-saves the returned videoId."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Video By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/videos/{{videoId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"videos",
+								"{{videoId}}"
+							]
+						},
+						"description": "Fetches a video by ID with owner details, like count, and isLiked flag. Also increments the view count and adds the video to the user's watch history."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Video",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "thumbnail",
+									"type": "file",
+									"src": "",
+									"description": "(Optional) New thumbnail image"
+								},
+								{
+									"key": "title",
+									"value": "Updated Video Title",
+									"type": "text",
+									"description": "(Optional) New title"
+								},
+								{
+									"key": "description",
+									"value": "Updated video description.",
+									"type": "text",
+									"description": "(Optional) New description"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/videos/{{videoId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"videos",
+								"{{videoId}}"
+							]
+						},
+						"description": "Updates a video's title, description, and/or thumbnail. Only the video owner can update. Partial updates supported."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Video",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/videos/{{videoId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"videos",
+								"{{videoId}}"
+							]
+						},
+						"description": "Permanently deletes a video. Only the video owner can delete."
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Publish Status",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/videos/toggle/publish/{{videoId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"videos",
+								"toggle",
+								"publish",
+								"{{videoId}}"
+							]
+						},
+						"description": "Toggles the video between published (visible to everyone) and unpublished (hidden). Only the video owner can toggle."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💬 Comments",
+			"item": [
+				{
+					"name": "Get Video Comments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/comments/{{videoId}}?page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"comments",
+								"{{videoId}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Comments per page (default: 10)"
+								}
+							]
+						},
+						"description": "Fetches paginated comments for a video, with owner details (username, fullname, avatar). Sorted by newest first."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Comment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data._id) {",
+									"    pm.collectionVariables.set(\"commentId\", jsonData.data._id);",
+									"    console.log(\"✅ commentId saved:\", jsonData.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"This video is really helpful. Keep it up!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/comments/{{videoId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"comments",
+								"{{videoId}}"
+							]
+						},
+						"description": "Adds a new comment to a video. Auto-saves the returned commentId."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Comment",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Updated comment content!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/comments/c/{{commentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"comments",
+								"c",
+								"{{commentId}}"
+							]
+						},
+						"description": "Updates an existing comment's content. Only the comment owner can update."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Comment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/comments/c/{{commentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"comments",
+								"c",
+								"{{commentId}}"
+							]
+						},
+						"description": "Deletes a comment. Only the comment owner can delete."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "❤️ Likes",
+			"item": [
+				{
+					"name": "Toggle Video Like",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/likes/toggle/v/{{videoId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"likes",
+								"toggle",
+								"v",
+								"{{videoId}}"
+							]
+						},
+						"description": "Toggles like on a video — if already liked, removes the like; if not liked, adds a like. Returns { isLiked: true/false }."
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Comment Like",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/likes/toggle/c/{{commentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"likes",
+								"toggle",
+								"c",
+								"{{commentId}}"
+							]
+						},
+						"description": "Toggles like on a comment. Returns { isLiked: true/false }."
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Tweet Like",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/likes/toggle/t/{{tweetId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"likes",
+								"toggle",
+								"t",
+								"{{tweetId}}"
+							]
+						},
+						"description": "Toggles like on a tweet. Returns { isLiked: true/false }."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Liked Videos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/likes/videos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"likes",
+								"videos"
+							]
+						},
+						"description": "Returns all videos liked by the authenticated user, with full video details and owner info. Sorted by most recently liked."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📝 Tweets",
 			"item": [
 				{
 					"name": "Create Tweet",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data._id) {",
+									"    pm.collectionVariables.set(\"tweetId\", jsonData.data._id);",
+									"    console.log(\"✅ tweetId saved:\", jsonData.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
@@ -418,7 +893,7 @@
 								"tweets"
 							]
 						},
-						"description": "Creates a new text-based tweet for the authenticated user."
+						"description": "Creates a new text tweet. Auto-saves the returned tweetId."
 					},
 					"response": []
 				},
@@ -428,24 +903,17 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/tweets/user/:userId",
+							"raw": "{{baseUrl}}/tweets/user/{{userId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"tweets",
 								"user",
-								":userId"
-							],
-							"variable": [
-								{
-									"key": "userId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the user whose tweets are to be fetched"
-								}
+								"{{userId}}"
 							]
 						},
-						"description": "Gets all tweets created by a specific user."
+						"description": "Gets all tweets by a user, with owner details and like count per tweet. Sorted newest first."
 					},
 					"response": []
 				},
@@ -464,23 +932,16 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseUrl}}/tweets/:tweetId",
+							"raw": "{{baseUrl}}/tweets/{{tweetId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"tweets",
-								":tweetId"
-							],
-							"variable": [
-								{
-									"key": "tweetId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the tweet to be updated"
-								}
+								"{{tweetId}}"
 							]
 						},
-						"description": "Updates the content of an existing tweet."
+						"description": "Updates a tweet's content. Only the tweet owner can update."
 					},
 					"response": []
 				},
@@ -490,506 +951,41 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/tweets/:tweetId",
+							"raw": "{{baseUrl}}/tweets/{{tweetId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"tweets",
-								":tweetId"
-							],
-							"variable": [
-								{
-									"key": "tweetId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the tweet to be deleted"
-								}
+								"{{tweetId}}"
 							]
 						},
-						"description": "Deletes a tweet."
+						"description": "Deletes a tweet permanently. Only the tweet owner can delete."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Videos",
-			"item": [
-				{
-					"name": "Get All Videos",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/videos?page=1&limit=10&query=coding&sortBy=createdAt&sortType=desc&userId=60c72b2f9b1d8a23c4a01234",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"videos"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (defaults to 1)"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Limit per page (defaults to 10)"
-								},
-								{
-									"key": "query",
-									"value": "coding",
-									"description": "Search keyword for title/description"
-								},
-								{
-									"key": "sortBy",
-									"value": "createdAt",
-									"description": "Field to sort by"
-								},
-								{
-									"key": "sortType",
-									"value": "desc",
-									"description": "Sort order (asc or desc)"
-								},
-								{
-									"key": "userId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "Filter by owner user ID"
-								}
-							]
-						},
-						"description": "Fetches a paginated list of videos based on search queries, filters, and sort options."
-					},
-					"response": []
-				},
-				{
-					"name": "Publish A Video",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "videoFile",
-									"type": "file",
-									"src": ""
-								},
-								{
-									"key": "thumbnail",
-									"type": "file",
-									"src": ""
-								},
-								{
-									"key": "title",
-									"value": "Learn Postman in 10 Minutes",
-									"type": "text"
-								},
-								{
-									"key": "description",
-									"value": "A quick and practical walkthrough of Postman collections.",
-									"type": "text"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseUrl}}/videos",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"videos"
-							]
-						},
-						"description": "Uploads and publishes a new video. Expects files for 'videoFile' and 'thumbnail' along with title and description."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Video By ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/videos/:videoId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"videos",
-								":videoId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to fetch"
-								}
-							]
-						},
-						"description": "Fetches details of a specific video."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Video",
-					"request": {
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "thumbnail",
-									"type": "file",
-									"src": ""
-								},
-								{
-									"key": "title",
-									"value": "Updated Title",
-									"type": "text"
-								},
-								{
-									"key": "description",
-									"value": "Updated description content.",
-									"type": "text"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseUrl}}/videos/:videoId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"videos",
-								":videoId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to update"
-								}
-							]
-						},
-						"description": "Updates video details such as title, description, and thumbnail."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Video",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/videos/:videoId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"videos",
-								":videoId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to delete"
-								}
-							]
-						},
-						"description": "Deletes a video by its ID."
-					},
-					"response": []
-				},
-				{
-					"name": "Toggle Publish Status",
-					"request": {
-						"method": "PATCH",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/videos/toggle/publish/:videoId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"videos",
-								"toggle",
-								"publish",
-								":videoId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to toggle publish status"
-								}
-							]
-						},
-						"description": "Toggles a video's status between published (public) and unpublished (private)."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Comments",
-			"item": [
-				{
-					"name": "Get Video Comments",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/comments/:videoId?page=1&limit=10",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"comments",
-								":videoId"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Items per page"
-								}
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to get comments for"
-								}
-							]
-						},
-						"description": "Retrieves comments for a specific video."
-					},
-					"response": []
-				},
-				{
-					"name": "Add Comment",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"content\": \"This video is really helpful. Keep it up!\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/comments/:videoId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"comments",
-								":videoId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to comment on"
-								}
-							]
-						},
-						"description": "Adds a comment to a specific video."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Comment",
-					"request": {
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"content\": \"Updated comment content!\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/comments/c/:commentId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"comments",
-								"c",
-								":commentId"
-							],
-							"variable": [
-								{
-									"key": "commentId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the comment to update"
-								}
-							]
-						},
-						"description": "Updates an existing comment."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Comment",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/comments/c/:commentId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"comments",
-								"c",
-								":commentId"
-							],
-							"variable": [
-								{
-									"key": "commentId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the comment to delete"
-								}
-							]
-						},
-						"description": "Deletes a comment."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Likes",
-			"item": [
-				{
-					"name": "Toggle Video Like",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/likes/toggle/v/:videoId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"likes",
-								"toggle",
-								"v",
-								":videoId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to toggle like"
-								}
-							]
-						},
-						"description": "Toggles like/dislike status on a video."
-					},
-					"response": []
-				},
-				{
-					"name": "Toggle Comment Like",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/likes/toggle/c/:commentId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"likes",
-								"toggle",
-								"c",
-								":commentId"
-							],
-							"variable": [
-								{
-									"key": "commentId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the comment to toggle like"
-								}
-							]
-						},
-						"description": "Toggles like/dislike status on a comment."
-					},
-					"response": []
-				},
-				{
-					"name": "Toggle Tweet Like",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/likes/toggle/t/:tweetId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"likes",
-								"toggle",
-								"t",
-								":tweetId"
-							],
-							"variable": [
-								{
-									"key": "tweetId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the tweet to toggle like"
-								}
-							]
-						},
-						"description": "Toggles like/dislike status on a tweet."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Liked Videos",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/likes/videos",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"likes",
-								"videos"
-							]
-						},
-						"description": "Retrieves all videos liked by the authenticated user."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Playlist",
+			"name": "🎵 Playlist",
 			"item": [
 				{
 					"name": "Create Playlist",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data._id) {",
+									"    pm.collectionVariables.set(\"playlistId\", jsonData.data._id);",
+									"    console.log(\"✅ playlistId saved:\", jsonData.data._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
@@ -1011,7 +1007,7 @@
 								"playlist"
 							]
 						},
-						"description": "Creates a new playlist for the authenticated user."
+						"description": "Creates a new empty playlist. Auto-saves the returned playlistId."
 					},
 					"response": []
 				},
@@ -1021,23 +1017,16 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/playlist/:playlistId",
+							"raw": "{{baseUrl}}/playlist/{{playlistId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"playlist",
-								":playlistId"
-							],
-							"variable": [
-								{
-									"key": "playlistId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the playlist to retrieve"
-								}
+								"{{playlistId}}"
 							]
 						},
-						"description": "Retrieves details and videos inside a specific playlist."
+						"description": "Fetches a playlist with all its videos (including each video's owner details) and the playlist owner's profile."
 					},
 					"response": []
 				},
@@ -1056,23 +1045,16 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseUrl}}/playlist/:playlistId",
+							"raw": "{{baseUrl}}/playlist/{{playlistId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"playlist",
-								":playlistId"
-							],
-							"variable": [
-								{
-									"key": "playlistId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the playlist to update"
-								}
+								"{{playlistId}}"
 							]
 						},
-						"description": "Updates the name and description of a playlist."
+						"description": "Updates a playlist's name and/or description. Only the playlist owner can update. Partial updates supported."
 					},
 					"response": []
 				},
@@ -1082,23 +1064,16 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/playlist/:playlistId",
+							"raw": "{{baseUrl}}/playlist/{{playlistId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"playlist",
-								":playlistId"
-							],
-							"variable": [
-								{
-									"key": "playlistId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the playlist to delete"
-								}
+								"{{playlistId}}"
 							]
 						},
-						"description": "Deletes a playlist by ID."
+						"description": "Permanently deletes a playlist. Only the playlist owner can delete."
 					},
 					"response": []
 				},
@@ -1108,30 +1083,18 @@
 						"method": "PATCH",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/playlist/add/:videoId/:playlistId",
+							"raw": "{{baseUrl}}/playlist/add/{{videoId}}/{{playlistId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"playlist",
 								"add",
-								":videoId",
-								":playlistId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to add"
-								},
-								{
-									"key": "playlistId",
-									"value": "60c72b2f9b1d8a23c4a01235",
-									"description": "ID of the target playlist"
-								}
+								"{{videoId}}",
+								"{{playlistId}}"
 							]
 						},
-						"description": "Appends a video to a playlist."
+						"description": "Adds a video to a playlist. Prevents duplicates. Only the playlist owner can add."
 					},
 					"response": []
 				},
@@ -1141,30 +1104,18 @@
 						"method": "PATCH",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/playlist/remove/:videoId/:playlistId",
+							"raw": "{{baseUrl}}/playlist/remove/{{videoId}}/{{playlistId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"playlist",
 								"remove",
-								":videoId",
-								":playlistId"
-							],
-							"variable": [
-								{
-									"key": "videoId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the video to remove"
-								},
-								{
-									"key": "playlistId",
-									"value": "60c72b2f9b1d8a23c4a01235",
-									"description": "ID of the target playlist"
-								}
+								"{{videoId}}",
+								"{{playlistId}}"
 							]
 						},
-						"description": "Removes a video from a playlist."
+						"description": "Removes a video from a playlist using atomic $pull. Only the playlist owner can remove."
 					},
 					"response": []
 				},
@@ -1174,117 +1125,89 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/playlist/user/:userId",
+							"raw": "{{baseUrl}}/playlist/user/{{userId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"playlist",
 								"user",
-								":userId"
-							],
-							"variable": [
-								{
-									"key": "userId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the user whose playlists are being requested"
-								}
+								"{{userId}}"
 							]
 						},
-						"description": "Retrieves all playlists created by a specific user."
+						"description": "Gets all playlists created by a specific user, with video details and a videosCount for each playlist."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Subscriptions",
+			"name": "🔔 Subscriptions",
 			"item": [
-				{
-					"name": "Get Subscribed Channels",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/subscriptions/c/:channelId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"subscriptions",
-								"c",
-								":channelId"
-							],
-							"variable": [
-								{
-									"key": "channelId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the channel owner"
-								}
-							]
-						},
-						"description": "Retrieves the list of channels that the specified channel owner is subscribed to."
-					},
-					"response": []
-				},
 				{
 					"name": "Toggle Subscription",
 					"request": {
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/subscriptions/c/:channelId",
+							"raw": "{{baseUrl}}/subscriptions/c/{{channelId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"subscriptions",
 								"c",
-								":channelId"
-							],
-							"variable": [
-								{
-									"key": "channelId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the channel to subscribe/unsubscribe"
-								}
+								"{{channelId}}"
 							]
 						},
-						"description": "Toggles subscription status (subscribe or unsubscribe) for a given channel."
+						"description": "Subscribes to or unsubscribes from a channel. Returns { isSubscribed: true/false }. Cannot subscribe to your own channel."
 					},
 					"response": []
 				},
 				{
-					"name": "Get User Channel Subscribers",
+					"name": "Get Subscribed Channels",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/subscriptions/u/:subscriberId",
+							"raw": "{{baseUrl}}/subscriptions/c/{{channelId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"subscriptions",
+								"c",
+								"{{channelId}}"
+							]
+						},
+						"description": "Returns the list of channels that the specified user has subscribed to, with channel profile details."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Channel Subscribers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/subscriptions/u/{{userId}}",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"subscriptions",
 								"u",
-								":subscriberId"
-							],
-							"variable": [
-								{
-									"key": "subscriberId",
-									"value": "60c72b2f9b1d8a23c4a01234",
-									"description": "ID of the subscriber"
-								}
+								"{{userId}}"
 							]
 						},
-						"description": "Retrieves the list of subscribers who are subscribed to the channel of the specified subscriber ID."
+						"description": "Returns the list of users who are subscribed to the specified channel, with subscriber profile details."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Dashboard",
+			"name": "📊 Dashboard",
 			"item": [
 				{
 					"name": "Get Channel Stats",
@@ -1301,7 +1224,7 @@
 								"stats"
 							]
 						},
-						"description": "Fetches analytics stats for the logged-in user's channel: total videos, total views, total subscribers, and total likes."
+						"description": "Returns analytics for the authenticated user's channel: totalVideos, totalViews, totalSubscribers, and totalLikes."
 					},
 					"response": []
 				},
@@ -1320,7 +1243,7 @@
 								"videos"
 							]
 						},
-						"description": "Retrieves all videos uploaded by the authenticated channel owner."
+						"description": "Returns all videos uploaded by the authenticated channel owner, sorted newest first."
 					},
 					"response": []
 				}
@@ -1360,7 +1283,7 @@
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "http://localhost:8000/api/v1",
+			"value": "http://localhost:4000/api/v1",
 			"type": "string"
 		},
 		{
@@ -1370,6 +1293,36 @@
 		},
 		{
 			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "videoId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tweetId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "commentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playlistId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "channelId",
 			"value": "",
 			"type": "string"
 		}
