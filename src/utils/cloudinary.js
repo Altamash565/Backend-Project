@@ -12,18 +12,40 @@ import fs from "fs"
     const uploadOncloudinary = async (localfilePath) => {
         try {
             if (!localfilePath) return null 
-            //upload the file on cloudinary
-            const response = await cloudinary.uploader.upload(localfilePath, { 
-                resource_type: "auto"
-            })
+            
+            // Check file extension to determine if it is a video
+            const isVideo = localfilePath.match(/\.(mp4|mkv|mov|avi|webm|flv|3gp|wmv)$/i);
+            
+            let response;
+            if (isVideo) {
+                // For videos, use upload_large to handle potentially large files and avoid timeouts
+                response = await new Promise((resolve, reject) => {
+                    cloudinary.uploader.upload_large(localfilePath, { 
+                        resource_type: "video",
+                        chunk_size: 6000000 // 6MB chunk size
+                    }, (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    })
+                });
+            } else {
+                response = await cloudinary.uploader.upload(localfilePath, { 
+                    resource_type: "auto"
+                })
+            }
 
-            //file has been uploaded successfull
+            //file has been uploaded successfully
             console.log("File is uploaded on cloudinary", response.url);
-            fs.unlinkSync(localfilePath)
+            if (fs.existsSync(localfilePath)) {
+                fs.unlinkSync(localfilePath)
+            }
             return response;
             
         } catch (error) {
-            fs.unlinkSync(localfilePath)  // remove the locally saved file as the upload operation got failed;  
+            console.error("Error uploading to Cloudinary:", error);
+            if (fs.existsSync(localfilePath)) {
+                fs.unlinkSync(localfilePath)  // remove the locally saved file as the upload operation got failed;  
+            }
             return null;
         }
     }
