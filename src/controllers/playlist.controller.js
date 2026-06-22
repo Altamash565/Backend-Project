@@ -1,5 +1,6 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Playlist} from "../models/playlist.model.js"
+import {Video} from "../models/video.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -181,8 +182,14 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You can only modify your own playlists")
     }
 
+    // Verify that the video exists in the database
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
     // Avoid adding the same video twice
-    if (playlist.videos.includes(videoId)) {
+    if (playlist.videos.map(id => id.toString()).includes(videoId)) {
         throw new ApiError(400, "Video is already in this playlist")
     }
 
@@ -215,7 +222,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     }
 
     // Check if the video actually exists in the playlist
-    if (!playlist.videos.includes(videoId)) {
+    if (!playlist.videos.map(id => id.toString()).includes(videoId)) {
         throw new ApiError(400, "Video is not in this playlist")
     }
 

@@ -1,6 +1,9 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Video} from "../models/video.model.js"
 import {User} from "../models/user.model.js"
+import {Comment} from "../models/comment.model.js"
+import {Like} from "../models/like.model.js"
+import {Playlist} from "../models/playlist.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -245,6 +248,13 @@ const updateVideo = asyncHandler(async (req, res) => {
             throw new ApiError(500, "Failed to upload thumbnail")
         }
 
+        // Delete the old thumbnail from Cloudinary
+        if (video.thumbnail) {
+            const oldThumbnailPublicId = video.thumbnail.split("/").pop().split(".")[0]
+            const { v2: cloudinary } = await import("cloudinary")
+            await cloudinary.uploader.destroy(oldThumbnailPublicId)
+        }
+
         video.thumbnail = thumbnail.url
     }
 
@@ -275,7 +285,26 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You can only delete your own videos")
     }
 
-    await Video.findByIdAndDelete(videoId)
+    // Delete the video file and thumbnail from Cloudinary
+    const { v2: cloudinary } = await import("cloudinary")
+    
+    if (video.videoFile) {
+        const videoPublicId = video.videoFile.split("/").pop().split(".")[0]
+        await cloudinary.uploader.destroy(videoPublicId, { resource_type: "video" })
+    }
+
+    if (video.thumbnail) {
+        const thumbnailPublicId = video.thumbnail.split("/").pop().split(".")[0]
+        await cloudinary.uploader.destroy(thumbnailPublicId)
+    }
+
+    // Cascade delete associated comments, likes, and references in playlists
+    await Promise.all([
+        Comment.deleteMany({ video: videoId }),
+        Like.deleteMany({ video: videoId }),
+        Playlist.updateMany({}, { $pull: { videos: videoId } }),
+        Video.findByIdAndDelete(videoId)
+    ])
 
     return res
         .status(200)

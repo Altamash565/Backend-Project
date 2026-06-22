@@ -47,10 +47,10 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 // Controller to return the subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const {subscriberId} = req.params
+    const { subscriberId: channelId } = req.params
 
-    // Validate the subscriberId (which represents the channel here)
-    if (!isValidObjectId(subscriberId)) {
+    // Validate the channel ID format
+    if (!isValidObjectId(channelId)) {
         throw new ApiError(400, "Invalid channel ID")
     }
 
@@ -59,7 +59,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         {
             // Step 1: Filter — find all subscriptions where channel = this user
             $match: {
-                channel: new mongoose.Types.ObjectId(subscriberId)
+                channel: new mongoose.Types.ObjectId(channelId)
             }
         },
         {
@@ -95,11 +95,11 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
 // Controller to return the channel list a user has subscribed to
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { channelId } = req.params
+    const { channelId: subscriberId } = req.params
 
-    // Validate the channelId format
-    if (!isValidObjectId(channelId)) {
-        throw new ApiError(400, "Invalid channel ID")
+    // Validate the subscriber ID format
+    if (!isValidObjectId(subscriberId)) {
+        throw new ApiError(400, "Invalid subscriber ID")
     }
 
     // Use aggregation to get channels with their profile details
@@ -107,7 +107,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         {
             // Step 1: Filter — find all subscriptions where subscriber = this user
             $match: {
-                subscriber: new mongoose.Types.ObjectId(channelId)
+                subscriber: new mongoose.Types.ObjectId(subscriberId)
             }
         },
         {

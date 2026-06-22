@@ -217,13 +217,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       secure: true,
     };
 
-    const { accessToken, newRefreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessAndRefreshTokens(user._id);
 
     return res
       .status(200)
-      .cookie("accesstoken", accessToken, options)
-      .cookie("refreshtoken", newRefreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
       .json(
         new ApiResponse(
           200,
@@ -333,6 +333,18 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Cover image is missing");
   }
 
+  // Delete the old cover image from Cloudinary before uploading the new one
+  const currentUser = await User.findById(req.user?._id);
+  if (currentUser?.coverImage) {
+    const oldCoverImagePublicId = currentUser.coverImage
+      .split("/")
+      .pop()
+      .split(".")[0];
+
+    const { v2: cloudinary } = await import("cloudinary");
+    await cloudinary.uploader.destroy(oldCoverImagePublicId);
+  }
+
   const coverImage = await uploadOncloudinary(CoverImageLocalpath);
 
   if (!coverImage.url) {
@@ -370,7 +382,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "subcriptions",
+        from: "subscriptions",
         localField: "_id",
         foreignField: "channel",
         as: "subscribers",
@@ -378,7 +390,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "subcriptions",
+        from: "subscriptions",
         localField: "_id",
         foreignField: "subscriber",
         as: "subscribedTo",
