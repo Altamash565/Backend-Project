@@ -98,7 +98,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   return res
     .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered Successfully"));
+    .json(new ApiResponse(201, createdUser, "User registered Successfully"));
 });
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -246,6 +246,11 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid old password");
   }
 
+  // Validate that new password is different from old password
+  if (oldPassword === newPassword) {
+    throw new ApiError(400, "New password must be different from old password");
+  }
+
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
 
@@ -265,6 +270,16 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
   if (!fullname || !email) {
     throw new ApiError(400, "All fields are required");
+  }
+
+  // Check if email is already used by another user
+  const existingUser = await User.findOne({ 
+    email,
+    _id: { $ne: req.user?._id }
+  });
+  
+  if (existingUser) {
+    throw new ApiError(409, "Email is already in use by another account");
   }
 
   const user = await User.findByIdAndUpdate(
@@ -293,15 +308,25 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   // Delete the old avatar from Cloudinary before uploading the new one
   const currentUser = await User.findById(req.user?._id);
   if (currentUser?.avatar) {
-    // Extract the public_id from the Cloudinary URL
+    // Extract the public_id from the Cloudinary URL safely
     // URL format: https://res.cloudinary.com/.../upload/v123/public_id.ext
-    const oldAvatarPublicId = currentUser.avatar
-      .split("/")
-      .pop()
-      .split(".")[0];
-
-    const { v2: cloudinary } = await import("cloudinary");
-    await cloudinary.uploader.destroy(oldAvatarPublicId);
+    try {
+      const url = new URL(currentUser.avatar);
+      const pathParts = url.pathname.split('/');
+      // Find the part after /upload/
+      const uploadIndex = pathParts.indexOf('upload');
+      if (uploadIndex !== -1 && uploadIndex + 2 < pathParts.length) {
+        const filenamePart = pathParts[uploadIndex + 2];
+        // Remove version string (v123) and extension
+        const oldAvatarPublicId = filenamePart.replace(/^v\d+\//, '').split('.')[0];
+        
+        const { v2: cloudinary } = await import("cloudinary");
+        await cloudinary.uploader.destroy(oldAvatarPublicId);
+      }
+    } catch (error) {
+      console.error("Failed to delete old avatar from Cloudinary:", error);
+      // Continue with upload even if deletion fails
+    }
   }
 
   const avatar = await uploadOncloudinary(avatarLocalpath);
@@ -336,13 +361,14 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   // Delete the old cover image from Cloudinary before uploading the new one
   const currentUser = await User.findById(req.user?._id);
   if (currentUser?.coverImage) {
-    const oldCoverImagePublicId = currentUser.coverImage
-      .split("/")
-      .pop()
-      .split(".")[0];
-
-    const { v2: cloudinary } = await import("cloudinary");
-    await cloudinary.uploader.destroy(oldCoverImagePublicId);
+    try {
+      const parts = currentUser.coverImage.split('/');
+      const oldCoverImagePublicId = parts[parts.length - 1].split('.')[0];
+      const { v2: cloudinary } = await import("cloudinary");
+      await cloudinary.uploader.destroy(oldCoverImagePublicId);
+    } catch (error) {
+      console.error("Failed to delete old cover image:", error);
+    }
   }
 
   const coverImage = await uploadOncloudinary(CoverImageLocalpath);

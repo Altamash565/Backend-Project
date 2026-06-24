@@ -13,6 +13,11 @@ import {uploadOncloudinary} from "../utils/cloudinary.js"
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy = "createdAt", sortType = "desc", userId } = req.query
 
+    // Validate sortBy parameter to prevent injection
+    const allowedSortFields = ["createdAt", "views", "title", "updatedAt"];
+    const validatedSortBy = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const validatedSortType = ["asc", "desc"].includes(sortType) ? sortType : "desc";
+
     // Build the $match filter dynamically based on what query params were sent
     const matchStage = {}
 
@@ -65,9 +70,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
             }
         },
         {
-            // Sort dynamically based on query params (e.g., createdAt desc, views asc)
+            // Sort dynamically based on validated query params
             $sort: {
-                [sortBy]: sortType === "asc" ? 1 : -1
+                [validatedSortBy]: validatedSortType === "asc" ? 1 : -1
             }
         }
     ])
@@ -285,24 +290,30 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You can only delete your own videos")
     }
 
-    // Delete the video file and thumbnail from Cloudinary
+    // Delete the video file and thumbnail from Cloudinary with error handling
     const { v2: cloudinary } = await import("cloudinary")
     
-    if (video.videoFile) {
-        const videoPublicId = video.videoFile.split("/").pop().split(".")[0]
-        await cloudinary.uploader.destroy(videoPublicId, { resource_type: "video" })
+    try {
+        if (video.videoFile) {
+            const videoPublicId = video.videoFile.split("/").pop().split(".")[0]
+            await cloudinary.uploader.destroy(videoPublicId, { resource_type: "video" })
+        }
+
+        if (video.thumbnail) {
+            const thumbnailPublicId = video.thumbnail.split("/").pop().split(".")[0]
+            await cloudinary.uploader.destroy(thumbnailPublicId)
+        }
+    } catch (error) {
+        console.error("Error deleting files from Cloudinary:", error);
+        // Continue with database deletion even if Cloudinary fails
     }
 
-    if (video.thumbnail) {
-        const thumbnailPublicId = video.thumbnail.split("/").pop().split(".")[0]
-        await cloudinary.uploader.destroy(thumbnailPublicId)
-    }
-
-    // Cascade delete associated comments, likes, and references in playlists
+    // Cascade delete associated comments, likes, and references in playlists and watch history
     await Promise.all([
         Comment.deleteMany({ video: videoId }),
         Like.deleteMany({ video: videoId }),
         Playlist.updateMany({}, { $pull: { videos: videoId } }),
+        User.updateMany({}, { $pull: { watchHistory: videoId } }),
         Video.findByIdAndDelete(videoId)
     ])
 
