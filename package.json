@@ -4,6 +4,9 @@
   "description": "A Backend project for video sharing platform",
   "type": "module",
   "main": "index.js",
+   "engines": {
+    "node": ">=18"
+   },
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
     "start": "node src/index.js"
