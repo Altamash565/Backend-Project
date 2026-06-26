@@ -5,7 +5,23 @@ import cookieParser from "cookie-parser"
 const app = express()
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, or Postman)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            process.env.CORS_ORIGIN,
+            "https://vidtube-frontend-eta.vercel.app",
+            "https://vidtube-frontend-eta.vercel.app/"
+        ].filter(Boolean);
+        const isLocalhost = origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:");
+        
+        if (allowedOrigins.includes(origin) || isLocalhost) {
+            callback(null, true);
+        } else {
+            callback(null, false);
+        }
+    },
     credentials: true
 }))
 
